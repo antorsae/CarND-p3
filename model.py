@@ -3,24 +3,66 @@ from keras.layers.normalization import BatchNormalization
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Flatten, Lambda, Dropout
 from keras.layers.convolutional import Convolution2D
-from keras.activations import relu, elu
+from keras.layers.advanced_activations import ELU
+
+from keras.activations import relu
+
 from keras.optimizers import Adam
+import json
+from keras.models import model_from_json
 
-from preprocess import size
+from preprocess import Preprocess
 
-sizex, sizey = size()
 
-def get_model():
-	model = get_model_comma()
+def get_model(which='nvidia'):
 
-	model.compile(
-	    loss='mean_squared_error', 
-	    metrics=['mean_squared_error'], 
-	    optimizer=Adam(lr=0.001))
+	sizex, sizey = (Preprocess.sizex, Preprocess.sizey)
+
+	if which == 'nvidia':	
+		model = get_model_nvidia(sizex, sizey)
+	elif which == 'comma':
+		model = get_model_comma(sizex, sizey)
+	elif which == 'comma-transfer':
+
+		comma_model = 'steering_angle.json'
+
+		#with open(comma_model, 'r') as jfile:
+		#    model = model_from_json(json.load(jfile))
+		ch, row, col = 3, 160, 320  # camera format
+
+		model = Sequential()
+		model.add(Lambda(lambda x: x/127.5 - 1.,
+				input_shape=(ch, row, col),
+				output_shape=(ch, row, col)))
+		model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same"))
+		model.add(ELU())
+		model.add(Convolution2D(32, 5, 5, subsample=(2, 2), border_mode="same"))
+		model.add(ELU())
+		model.add(Convolution2D(64, 5, 5, subsample=(2, 2), border_mode="same"))
+		model.add(Flatten())
+		model.add(Dropout(.2))
+		model.add(ELU())
+		model.add(Dense(512))
+		model.add(Dropout(.5))
+		model.add(ELU())
+		model.add(Dense(1))
+
+		model.compile(optimizer="adam", loss="mse")
+
+		weights_file = comma_model.replace('json', 'keras')
+		model.load_weights(weights_file)
+
+	if which != 'comma-transfer':
+		model.compile(
+			loss='mse', 
+			metrics=['mse'],
+		optimizer=Adam(lr=0.0001))
+
+	model.summary()
 
 	return model
 
-def get_model_nvidia():
+def get_model_nvidia(sizex, sizey):
 	model = Sequential()
 
 	model.add(Lambda(lambda x: x / 255 - 0.5, input_shape=(sizey, sizex, 3)))
@@ -61,12 +103,12 @@ def get_model_nvidia():
 
 	return model
 
-def get_model_comma():
+def get_model_comma(sizex, sizey):
 	activation = 'elu'
 
 	model = Sequential()
 	model.add(Lambda(lambda x: x/127.5 - 1.,
-	            input_shape=(sizey, sizex, 3)))
+				input_shape=(sizey, sizex, 3)))
 
 	model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same"))
 	model.add(Activation(activation))
