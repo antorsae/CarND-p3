@@ -34,7 +34,7 @@ def telemetry(sid, data):
 	# The current steering angle of the car
 	steering_angle = data["steering_angle"]
 	# The current throttle of the car
-	throttle = data["throttle"]
+	throttle = float(data["throttle"])
 	# The current speed of the car
 	speed = float(data["speed"])
 	# The current image from the center camera of the car
@@ -45,9 +45,16 @@ def telemetry(sid, data):
 	# This model currently assumes that the features of the model are just the images. Feel free to change this.
 	steering_angle = float(model.predict(transformed_image_array, batch_size=1))
 	# The driving model currently just outputs a constant throttle. Feel free to edit this.
-	throttle = 0.2 * (np.amax([0.15 - np.abs(steering_angle), 0.]))/0.15 + 0.02
 
-	print(steering_angle, throttle, speed)
+	# speed_up_angle is 0 when angle is too abrupt to speed up and 1 when it's ok (heading straight)
+	speed_up_angle = np.max([0.15 - np.abs(steering_angle), 0.]) / 0.15
+
+	if speed < 10.0:
+		throttle += 0.05
+	else:
+		throttle = 0.25 * speed_up_angle + 0.01
+
+	print(steering_angle, speed_up_angle, throttle, speed)
 
 	send_control(steering_angle, throttle)
 
