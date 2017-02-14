@@ -50,7 +50,7 @@ def telemetry(sid, data):
 	speed_up_angle = np.max([0.15 - np.abs(steering_angle), 0.]) / 0.15
 
 	if speed < 10.0:
-		throttle += 0.05
+		throttle += 0.1
 	else:
 		throttle = 0.25 * speed_up_angle + 0.01
 

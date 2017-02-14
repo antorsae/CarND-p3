@@ -63,15 +63,19 @@ def get_model_nvidia(sizex, sizey):
 
 	model.add(Flatten())
 
+	model.add(Dropout(.2))
 	model.add(Dense(1164, init = init))
 	model.add(Activation(activation))
 
+	model.add(Dropout(.3))
 	model.add(Dense(100, init = init))
 	model.add(Activation(activation))
 
+	model.add(Dropout(.4))
 	model.add(Dense(50, init = init))
 	model.add(Activation(activation))
 
+	model.add(Dropout(.5))
 	model.add(Dense(10, init = init))
 	model.add(Activation(activation))
 
@@ -91,7 +95,7 @@ def get_model_comma(sizex, sizey):
 
 	model = Sequential()
 #	model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(sizey, sizex, 3)))
-	model.add(Cropping2D(cropping=((60, 24), (0, 0)),input_shape=(sizey, sizex, 3)))
+	model.add(Cropping2D(cropping=((56, 24), (0, 0)),input_shape=(sizey, sizex, 3)))
 	model.add(Lambda(minmax_norm))
 	#model.add(GaussianNoise(0.01))
 	model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same", init = init))

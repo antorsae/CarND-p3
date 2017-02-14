@@ -19,21 +19,20 @@ from keras.callbacks import LambdaCallback
 import argparse
 import random
 
-def shadow(image):
-	h, w = image.shape[0], image.shape[1]
-	[x1, x2] = np.random.choice(w, 2, replace=False)
-	k = h / (x2 - x1)
-	b = - k * x1
-	shadow = 0.5 #(np.random.random_sample() * 0.1 + 0.3)
-	side = random.choice([True, False])
-	shadow_image = np.array(image)
-	for hi in range(h):
-		c = int((hi - b) / k)
-		if side:
-			shadow_image[hi, c:, :] = (image[hi, c:, :] * shadow).astype(np.uint8)
-		else:
-			shadow_image[hi, :c, :] = (image[hi, :c, :] * shadow).astype(np.uint8)
-	return shadow_image
+def gen_transforms(l, augment_transform):
+	if augment_transform.startswith('c'):
+		st = l.steering
+		image    = imread(l.center)
+		image_f  = cv2.flip(image, flipCode = 1) 
+	elif augment_transform.startswith('r'):
+		st       = l.steering + l.steering_bias_right
+		image    = imread(l.right)
+		image_f  = cv2.flip(image, flipCode = 1) 
+	elif augment_transform.startswith('l'):
+		st       = l.steering + l.steering_bias_left
+		image    = imread(l.left)			
+		image_f  = cv2.flip(image, flipCode = 1) 
+	return (image, shadow(image), image_f, shadow(image_f), st, st, -st, -st)
 
 # GENERATOR
 # 
@@ -45,19 +44,16 @@ def shadow(image):
 # - steering_bias_right: amount of steering compensation for R camera
 # - augment_transforms:  string containing allowed transformations:
 #
-#   cf  = center flipped
+#   c   = center
 #   l   = left camera
 #   r   = right camera
-#   lf  = left camera flipped
-#   rf  = right camera flipped
 # 
 # In addition for each augmented image another one is created by applying
 # a random shadow 
 #
-# So if an entry has 'cf l r lf rf' augment_transforms a total of
-# 12 images will be generated (center + cf cf l r lf rf) and 6 more for their
-# shadowed counterparts 
-#  
+# So if an entry has 'c cf l r lf rf' augment_transforms a total of
+# 12 images will be generated 
+#
 def generator(log, validation = False):
 	
 	save_counter = 0
@@ -74,42 +70,47 @@ def generator(log, validation = False):
 			images              = np.empty([0, 160, 320, 3], dtype=np.uint8)
 			augmented_steerings = np.empty([0, 1], dtype=np.float32)
 
+			work_l = []
+			work_a = []
 			for j,l in ll.iterrows():
-				center = imread(l.center)
-				st = l.steering
-
-				images 				= np.vstack((images, [center]))
-				augmented_steerings = np.vstack((augmented_steerings, [st]))
-
-				if validation == False:
-					images 				= np.vstack((images, [shadow(center)]))
+				if validation == True:
+					center = imread(l.center)
+					st = l.steering
+					images 				= np.vstack((images, [center]))
 					augmented_steerings = np.vstack((augmented_steerings, [st]))
+				else:
+					augment_transforms = l.augment_transforms.split()
+					work_l.extend([l] * len(augment_transforms))
+					work_a.extend(augment_transforms)
 
-					for augment_transform in l.augment_transforms.split():
-						flip = False
-						if augment_transform == 'cf':
-							st = -l.steering
-							image               = cv2.flip(center, flipCode = 1)
-							images 				= np.vstack((images, [image], [shadow(image)]))
-							augmented_steerings = np.vstack((augmented_steerings, [st], [st]))
-						elif augment_transform.startswith('r'):
-							st = l.steering + l.steering_bias_right
-							if augment_transform.endswith('f'):
-								st = -st
-								flip = True
-							right = imread(l.right)
-							image = right if not flip else cv2.flip(right, flipCode = 1)
-							images 				= np.vstack((images, [image], [shadow(image)]))
-							augmented_steerings = np.vstack((augmented_steerings, [st], [st]))
-						elif augment_transform.startswith('l'):
-							st = l.steering + l.steering_bias_left
-							if augment_transform.endswith('f'):
-								st = -st
-								flip = True
-							left = imread(l.left)			
-							image = left if not flip else cv2.flip(left, flipCode = 1)
-							images 				= np.vstack((images, [image], [shadow(image)]))
-							augmented_steerings = np.vstack((augmented_steerings, [st], [st]))
+			if (validation == False):
+
+				# nvidia-smi reports low GPU usage (<50%) so I tried increasing
+				# batch size... but as I increased batch size EPOCH times grew
+				# this led me to think we were CPU-bound, so I experimented 
+				# with multi-threading.
+				# 
+				# Experiment was a failure. leave to False since MT is significantly 
+				# slower than ST still don't know WHY. I also tried this generator in 
+				# multiprocess mode (see Keras dox: nb_worker, pickle_safe) but results 
+				# in slower behavior too.
+				multi_thread = False
+
+				if multi_thread:
+					from multiprocessing.dummy import Pool as ThreadPool 
+					from multiprocessing import cpu_count
+
+					pool = ThreadPool(cpu_count())
+					results = pool.starmap(gen_transforms, zip(work_l, work_a))
+					pool.close()
+					pool.join()
+				else:
+					results = []
+					for w_l, w_a in zip(work_l, work_a):
+						results.append(gen_transforms(w_l, w_a))
+				for r in results:
+					images 				= np.vstack((images, 			  [r[0]], [r[1]], [r[2]], [r[3]]))
+					augmented_steerings = np.vstack((augmented_steerings, [r[4]], [r[5]], [r[6]], [r[7]]))
 
 			images_processed = np.empty([0, Preprocess.sizey, Preprocess.sizex, 3], dtype=np.uint8)
 
@@ -125,9 +126,10 @@ def generator(log, validation = False):
 
 # balances dataset: take as much as bin_n items for each bin
 # it doesnt take into account the augmented steerings 
+# credit: http://navoshta.com/end-to-end-deep-learning/
 def balance(log):
 	balanced = pd.DataFrame()   # Balanced dataset
-	bins =  1000                 # N of bins
+	bins =  1000                # N of bins
 	bin_n = 200                 # N of examples to include in each bin (at most)
 
 	start = 0
@@ -139,11 +141,37 @@ def balance(log):
 		start = end
 	return balanced
 
+# apply random shadow to image
+# loosely based on: http://navoshta.com/end-to-end-deep-learning/
+def shadow(image):
+	max_shadow_sides = np.random.randint(2,10)
+	h, w = image.shape[0], image.shape[1]
+	#y = np.random.choice(h//shadow_sides, shadow_sides, replace=False)
+	y = np.append(np.unique(np.random.randint(1, h, size=max_shadow_sides)),h)
+	shadow_sides=len(y)
+	y[1:] = y[1:]-y[0:-1]
+	x = np.random.choice(w, shadow_sides+1, replace=False)
+	hii = 0
+	shadow_image = np.array(image)
+	side = random.choice([True, False])
+	shadow = (np.random.random_sample() * 0.1 + 0.3)
+	for n in range(shadow_sides):
+		k = y[n] / (x[n+1] - x[n])
+		b = - k * x[n]
+		for hi in range(y[n]):
+			c = int((hi - b) / k)
+			if side:
+				shadow_image[hii, c:, :] = (image[hii, c:, :] * shadow).astype(np.uint8)
+			else:
+				shadow_image[hii, :c, :] = (image[hii, :c, :] * shadow).astype(np.uint8)
+			hii += 1
+	return shadow_image
+
 # ***** main loop *****
 
 if __name__ == "__main__":
 
-	BS = 2
+	BS = 1
 
 	parser = argparse.ArgumentParser(description='Train behavioral cloning udacity CarND P3')
 	parser.add_argument('centerdir', type=str, default='driving-centered', help='Directory name of training data for CENTERED driving')
@@ -180,37 +208,37 @@ if __name__ == "__main__":
 	#
 	center_log['steering_bias_left']  =  steering_bias
 	center_log['steering_bias_right'] = -steering_bias
-	center_log['augment_transforms'] = "cf l r lf rf" 
+	center_log['augment_transforms'] = "c l r" 
 
 	# driving at the left edge of the road, steering follows the road
 	#
 	left_log.steering  = left_log.steering + 0.7
 	left_log['steering_bias_left']  =   steering_bias
 	left_log['steering_bias_right'] =  -steering_bias
-	left_log['augment_transforms'] = "cf r rf"
+	left_log['augment_transforms'] = "c r"
 
 	# driving at the right edge of the road, steering follows the road
 	#
 	right_log.steering = right_log.steering - 0.7
 	right_log['steering_bias_left']  =   steering_bias
 	right_log['steering_bias_right'] =  -steering_bias
-	right_log['augment_transforms'] = "cf l lf"
+	right_log['augment_transforms'] = "c l"
 	
 	# fragments of attempting to drive out of the road, pointing ~15 deg to the right
 	# steering is 0. 
 	sk_right_log.steering -= 0.6
 	sk_right_log['steering_bias_left'] =   steering_bias
 	sk_right_log['steering_bias_right'] = -steering_bias
-	sk_right_log['augment_transforms'] = "cf r rf l lf"
+	sk_right_log['augment_transforms'] = "c r l"
 
 	# fragments of attempting to drive out of the road, pointing ~15 deg to the left
 	# steering is 0
 	sk_left_log.steering += 0.6
 	sk_left_log['steering_bias_left'] =   steering_bias
 	sk_left_log['steering_bias_right'] = -steering_bias
-	sk_left_log['augment_transforms'] = "cf l lf r rf"
+	sk_left_log['augment_transforms'] = "c l r"
 
-	driving_log = pd.concat([center_log, left_log, right_log, sk_right_log, sk_left_log])
+	driving_log = balance(pd.concat([center_log, left_log, right_log, sk_right_log, sk_left_log]))
 	print(np.histogram(np.abs(driving_log.steering), bins=100))
 
 	print((driving_log.augment_transforms.str.split().str.len()+1).sum())
@@ -227,7 +255,7 @@ if __name__ == "__main__":
 
 	history = model.fit_generator(generator(train_log), 
 				nb_epoch=180, 
-				samples_per_epoch = 2*(train_log.augment_transforms.str.split().str.len()+1).sum(),
+				samples_per_epoch = 4*(train_log.augment_transforms.str.split().str.len()).sum(),
 				validation_data = generator(validate_log, validation=True),
 				nb_val_samples = validate_log.shape[0],
 				callbacks = [cb])
