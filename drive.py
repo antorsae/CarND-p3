@@ -19,7 +19,7 @@ from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_a
 import tensorflow as tf
 tf.python.control_flow_ops = tf
 
-import cv2
+import datetime as dt
 
 sio = socketio.Server()
 app = Flask(__name__)
@@ -28,9 +28,12 @@ prev_image_array = None
 
 from preprocess import Preprocess
 
+n1 = dt.datetime.now()
+n2 = dt.datetime.now()
 
 @sio.on('telemetry')
 def telemetry(sid, data):
+	global n1,n2
 	# The current steering angle of the car
 	steering_angle = data["steering_angle"]
 	# The current throttle of the car
@@ -43,7 +46,15 @@ def telemetry(sid, data):
 	image_array = Preprocess.preprocess(np.asarray(image))
 	transformed_image_array = image_array[None, :, :, :]
 	# This model currently assumes that the features of the model are just the images. Feel free to change this.
+
+	n1=dt.datetime.now()
+	telemetry_time = (n1 - n2).microseconds / 1000
+
 	steering_angle = float(model.predict(transformed_image_array, batch_size=1))
+	n2=dt.datetime.now()
+	prediction_time = (n2 - n1).microseconds / 1000
+
+	#time.sleep(1)
 	# The driving model currently just outputs a constant throttle. Feel free to edit this.
 
 	# speed_up_angle is 0 when angle is too abrupt to speed up and 1 when it's ok (heading straight)
@@ -54,7 +65,7 @@ def telemetry(sid, data):
 	else:
 		throttle = 0.25 * speed_up_angle + 0.01
 
-	print(steering_angle, speed_up_angle, throttle, speed)
+	print("Angle: ",steering_angle, " Throttle: ", throttle, "Speed: ", speed, " Pred time: ", prediction_time, " Tele time: ", telemetry_time)
 
 	send_control(steering_angle, throttle)
 

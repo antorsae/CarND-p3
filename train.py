@@ -238,25 +238,33 @@ if __name__ == "__main__":
 	sk_left_log['steering_bias_right'] = -steering_bias
 	sk_left_log['augment_transforms'] = "c l r"
 
-	driving_log = balance(pd.concat([center_log, left_log, right_log, sk_right_log, sk_left_log]))
-	print(np.histogram(np.abs(driving_log.steering), bins=100))
+#	print(np.histogram(np.abs(driving_log.steering), bins=100))
 
-	print((driving_log.augment_transforms.str.split().str.len()+1).sum())
+#	print((driving_log.augment_transforms.str.split().str.len()+1).sum())
 
-	train_log, validate_log = train_test_split(driving_log, test_size=0.20)
-	print("Samples in train set:", train_log.shape[0])
 
-	cb   = ModelCheckpoint(current_model + ".h5", monitor='val_loss', save_best_only=False)
+	cb   = ModelCheckpoint(current_model + ".h5", monitor='val_loss', save_best_only=True)
 
 	model = get_model(current_model)
 
 	with open(current_model + ".json", "w") as file:
 		file.write(model.to_json())
 
-	history = model.fit_generator(generator(train_log), 
-				nb_epoch=180, 
-				samples_per_epoch = 4*(train_log.augment_transforms.str.split().str.len()).sum(),
-				validation_data = generator(validate_log, validation=True),
-				nb_val_samples = validate_log.shape[0],
-				callbacks = [cb])
+	driving_log = pd.concat([center_log, left_log, right_log, sk_right_log, sk_left_log])
+	train_log, validate_log = train_test_split(driving_log, test_size=0.20)
+
+	print("Samples in unbalanced train set:",      train_log.shape[0])
+	print("Samples in unbalanced validation set:", validate_log.shape[0])
+
+	for meta_epoch in range(10):
+		b_train_log    = balance(train_log)
+		b_validate_log = balance(validate_log)
+		print("Samples in balanced train set:",      b_train_log.shape[0])
+		print("Samples in balanced validation set:", b_validate_log.shape[0])
+		history = model.fit_generator(generator(b_train_log), 
+					nb_epoch=20, 
+					samples_per_epoch = 4*(b_train_log.augment_transforms.str.split().str.len()).sum(),
+					validation_data = generator(b_validate_log, validation=True),
+					nb_val_samples = b_validate_log.shape[0],
+					callbacks = [cb])
 
