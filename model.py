@@ -4,7 +4,7 @@ from keras.models import Sequential, Model
 from keras.layers import Input, merge
 from keras.layers.noise import GaussianNoise
 from keras.layers.core import Dense, Activation, Flatten, Lambda, Dropout
-from keras.layers.convolutional import Convolution2D, Cropping2D
+from keras.layers.convolutional import Convolution2D, Cropping2D, AveragePooling2D
 from keras.layers.advanced_activations import ELU
 
 from keras.activations import relu
@@ -39,7 +39,9 @@ def get_model_nvidia(sizex, sizey):
 	model = Sequential()
 
 	model.add(Cropping2D(cropping=((56, 24), (0, 0)),input_shape=(sizey, sizex, 3)))
+	model.add(AveragePooling2D(pool_size=(1, 2)))
 	model.add(Lambda(minmax_norm))
+	model.add(GaussianNoise(0.1))
 
 #	model.add(Lambda(lambda x: x / 255 - 0.5, input_shape=(sizey, sizex, 3)))
 
@@ -64,19 +66,20 @@ def get_model_nvidia(sizex, sizey):
 	model.add(Flatten())
 
 	model.add(Dropout(.2))
-	model.add(Dense(1164, init = init))
+	model.add(Dense(128, init = init))
+#	model.add(Dense(1164, init = init))
 	model.add(Activation(activation))
 
 	model.add(Dropout(.3))
-	model.add(Dense(100, init = init))
+	model.add(Dense(64, init = init))
 	model.add(Activation(activation))
 
 	model.add(Dropout(.4))
-	model.add(Dense(50, init = init))
+	model.add(Dense(32, init = init))
 	model.add(Activation(activation))
 
 	model.add(Dropout(.5))
-	model.add(Dense(10, init = init))
+	model.add(Dense(16, init = init))
 	model.add(Activation(activation))
 
 	model.add(Dense(1))

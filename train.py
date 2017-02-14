@@ -259,6 +259,7 @@ if __name__ == "__main__":
 	for meta_epoch in range(10):
 		b_train_log    = balance(train_log)
 		b_validate_log = balance(validate_log)
+		print("Meta epoch:",  meta_epoch)
 		print("Samples in balanced train set:",      b_train_log.shape[0])
 		print("Samples in balanced validation set:", b_validate_log.shape[0])
 		history = model.fit_generator(generator(b_train_log), 
