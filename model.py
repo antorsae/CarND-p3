@@ -83,7 +83,7 @@ def minmax_norm(x):
     xmin = K.min(x, axis=[1,2,3], keepdims=True)
     xmax = K.max(x, axis=[1,2,3], keepdims=True)
     
-    return (x - xmin )/ (xmax-xmin) - 0.5
+    return (x - xmin ) / (xmax-xmin) - 0.5
 
 def get_model_comma(sizex, sizey):
 	activation = 'elu'
@@ -91,7 +91,7 @@ def get_model_comma(sizex, sizey):
 
 	model = Sequential()
 #	model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(sizey, sizex, 3)))
-	model.add(Cropping2D(cropping=((56//2, 24//2), (0, 0)),input_shape=(sizey, sizex, 3)))
+	model.add(Cropping2D(cropping=((60, 24), (0, 0)),input_shape=(sizey, sizex, 3)))
 	model.add(Lambda(minmax_norm))
 	#model.add(GaussianNoise(0.01))
 	model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same", init = init))
