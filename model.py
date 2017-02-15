@@ -41,7 +41,7 @@ def get_model_nvidia(sizex, sizey):
 	model.add(Cropping2D(cropping=((56, 24), (0, 0)),input_shape=(sizey, sizex, 3)))
 	model.add(AveragePooling2D(pool_size=(1, 2)))
 	model.add(Lambda(minmax_norm))
-	model.add(GaussianNoise(0.1))
+	model.add(GaussianNoise(0.2))
 
 #	model.add(Lambda(lambda x: x / 255 - 0.5, input_shape=(sizey, sizex, 3)))
 

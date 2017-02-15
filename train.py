@@ -15,7 +15,7 @@ from model import get_model
 from sklearn.model_selection import train_test_split
 from keras.callbacks import ModelCheckpoint
 from keras.models import model_from_json
-from keras.callbacks import LambdaCallback
+from keras.callbacks import LambdaCallback, TensorBoard
 import argparse
 import random
 
@@ -194,6 +194,9 @@ if __name__ == "__main__":
 
 	sk_left_dir = 'driving-skewed-left-15'
 	sk_left_log  = pd.read_csv(sk_left_dir+'/driving_log.csv')
+
+	track2_dir   = 'track2-validation'
+	track2_log   = pd.read_csv(track2_dir+'/driving_log.csv')
 	
 	for i in ['left', 'right', 'center']:
 		center_log[i]   = args.centerdir + '/' + center_log[i].str.strip()
@@ -201,6 +204,7 @@ if __name__ == "__main__":
 		right_log[i]    = args.rightdir  + '/' + right_log[i].str.strip()
 		sk_right_log[i] = sk_right_dir   + '/' + sk_right_log[i].str.strip()
 		sk_left_log[i]  = sk_left_dir    + '/' + sk_left_log[i].str.strip()
+		track2_log[i]   = track2_dir     + '/' + track2_log[i].str.strip()
 
 	steering_bias = 0.2
 
@@ -238,12 +242,14 @@ if __name__ == "__main__":
 	sk_left_log['steering_bias_right'] = -steering_bias
 	sk_left_log['augment_transforms'] = "c l r"
 
-#	print(np.histogram(np.abs(driving_log.steering), bins=100))
 
-#	print((driving_log.augment_transforms.str.split().str.len()+1).sum())
+	# driving in the center, steering follows the road
+	#
+	#track2_log['augment_transforms'] = "c" 
 
 
 	cb   = ModelCheckpoint(current_model + ".h5", monitor='val_loss', save_best_only=True)
+	cbtb = TensorBoard(write_images=True)
 
 	model = get_model(current_model)
 
@@ -254,18 +260,16 @@ if __name__ == "__main__":
 	train_log, validate_log = train_test_split(driving_log, test_size=0.20)
 
 	print("Samples in unbalanced train set:",      train_log.shape[0])
-	print("Samples in unbalanced validation set:", validate_log.shape[0])
+	print("Samples in unbalanced validation set:", validate_log.shape[0]) #only track #1
 
-	for meta_epoch in range(10):
-		b_train_log    = balance(train_log)
-		b_validate_log = balance(validate_log)
-		print("Meta epoch:",  meta_epoch)
-		print("Samples in balanced train set:",      b_train_log.shape[0])
-		print("Samples in balanced validation set:", b_validate_log.shape[0])
-		history = model.fit_generator(generator(b_train_log), 
-					nb_epoch=20, 
-					samples_per_epoch = 4*(b_train_log.augment_transforms.str.split().str.len()).sum(),
-					validation_data = generator(b_validate_log, validation=True),
-					nb_val_samples = b_validate_log.shape[0],
-					callbacks = [cb])
+	b_train_log    = balance(train_log)
+	b_validate_log = pd.concat([balance(validate_log), balance(track2_log)])
+	print("Samples in balanced train set:",      b_train_log.shape[0])
+	print("Samples in balanced validation set:", b_validate_log.shape[0])
+	history = model.fit_generator(generator(b_train_log), 
+				nb_epoch=100, 
+				samples_per_epoch = 4*(b_train_log.augment_transforms.str.split().str.len()).sum(),
+				validation_data = generator(b_validate_log, validation=True),
+				nb_val_samples = b_validate_log.shape[0],
+				callbacks = [cb, cbtb])
 
