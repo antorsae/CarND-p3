@@ -16,6 +16,7 @@ from sklearn.model_selection import train_test_split
 from keras.callbacks import ModelCheckpoint
 from keras.models import model_from_json
 from keras.callbacks import LambdaCallback, TensorBoard
+from keras.preprocessing.image import ImageDataGenerator
 import argparse
 import random
 
@@ -23,16 +24,30 @@ def gen_transforms(l, augment_transform):
 	if augment_transform.startswith('c'):
 		st = l.steering
 		image    = imread(l.center)
-		image_f  = cv2.flip(image, flipCode = 1) 
 	elif augment_transform.startswith('r'):
 		st       = l.steering + l.steering_bias_right
 		image    = imread(l.right)
-		image_f  = cv2.flip(image, flipCode = 1) 
 	elif augment_transform.startswith('l'):
 		st       = l.steering + l.steering_bias_left
 		image    = imread(l.left)			
-		image_f  = cv2.flip(image, flipCode = 1) 
-	return (image, shadow(image), image_f, shadow(image_f), st, st, -st, -st)
+	image_f   = cv2.flip(image, flipCode = 1) 
+	image_b   = cv2.medianBlur(image, 3) 
+	image_bf  = cv2.medianBlur(image_f, 3) 
+	gimage_w   = cv2.cvtColor(random.choice([image_b, image]), cv2.COLOR_RGB2GRAY)
+	gimage_fw  = cv2.cvtColor(random.choice([image_bf, image_f]), cv2.COLOR_RGB2GRAY)
+	image_w    = np.empty_like(image)
+	image_fw    = np.empty_like(image)
+	image_w[:,:,0] = gimage_w
+	image_w[:,:,1] = gimage_w
+	image_w[:,:,2] = gimage_w
+	image_fw[:,:,0] = gimage_fw
+	image_fw[:,:,1] = gimage_fw
+	image_fw[:,:,2] = gimage_fw
+	
+	#print(image.shape)
+	#print(image_w.shape)	
+	return (image, shadow(image), image_f, shadow(image_f), image_b, image_bf, image_w, image_fw, shadow(image_w), shadow(image_fw),
+		st, st, -st, -st, st, -st, st, -st, st, -st)
 
 # GENERATOR
 # 
@@ -57,6 +72,7 @@ def gen_transforms(l, augment_transform):
 def generator(log, validation = False):
 	
 	save_counter = 0
+	image_augmenter = ImageDataGenerator(zoom_range= [1.-0.05, 1.-0.1])
 	
 	while True:
 		log = shuffle(log)
@@ -109,18 +125,31 @@ def generator(log, validation = False):
 					for w_l, w_a in zip(work_l, work_a):
 						results.append(gen_transforms(w_l, w_a))
 				for r in results:
-					images 				= np.vstack((images, 			  [r[0]], [r[1]], [r[2]], [r[3]]))
-					augmented_steerings = np.vstack((augmented_steerings, [r[4]], [r[5]], [r[6]], [r[7]]))
+					images 				= np.vstack((images, 			  [r[ 0]], [r[ 1]], [r[ 2]], [r[ 3]], [r[ 4]], [r[ 5]], [r[ 6]], [r[ 7]], [r[ 8]], [r[ 9]]))
+					augmented_steerings = np.vstack((augmented_steerings, [r[10]], [r[11]], [r[12]], [r[13]], [r[14]], [r[15]], [r[16]], [r[17]], [r[18]], [r[19]]))
 
 			images_processed = np.empty([0, Preprocess.sizey, Preprocess.sizex, 3], dtype=np.uint8)
 
-			save_counter += 1
 			for inum,im in enumerate(images):
 				if (save_counter % 1000) == 0:
 					imsave( "train-{}.jpg".format(inum), im)
 				images_processed = np.vstack((images_processed, [Preprocess.preprocess(im)]))
 
 			(images_processed, augmented_steerings) = shuffle(images_processed, augmented_steerings)
+			if validation == False:
+				if (save_counter % 1000) == 0:
+					save_to_dir = "./aug/"
+				else:
+					save_to_dir = None
+				#image_augmenter.fit(images_processed[0:1])
+				#for image_xtra, steering_xtra in image_augmenter.flow(images_processed, augmented_steerings, batch_size=images_processed.shape[0], save_to_dir=save_to_dir):
+					#print(image_xtra.shape)
+			#		images_processed    = np.vstack((images_processed, image_xtra))
+			#		augmented_steerings = np.vstack((augmented_steerings, steering_xtra))
+
+					#break
+
+			save_counter += 1
 
 			yield (images_processed, np.clip(augmented_steerings, -1., 1.))
 
@@ -268,7 +297,7 @@ if __name__ == "__main__":
 	print("Samples in balanced validation set:", b_validate_log.shape[0])
 	history = model.fit_generator(generator(b_train_log), 
 				nb_epoch=100, 
-				samples_per_epoch = 4*(b_train_log.augment_transforms.str.split().str.len()).sum(),
+				samples_per_epoch = 10*(b_train_log.augment_transforms.str.split().str.len()).sum(),
 				validation_data = generator(b_validate_log, validation=True),
 				nb_val_samples = b_validate_log.shape[0],
 				callbacks = [cb, cbtb])
