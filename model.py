@@ -16,6 +16,8 @@ from keras.models import model_from_json
 from preprocess import Preprocess
 from keras import backend as K
 
+def max_abs_error(y_true, y_pred):
+    return K.max(K.abs(y_pred - y_true))
 
 def get_model(which='nvidia'):
 
@@ -28,7 +30,7 @@ def get_model(which='nvidia'):
 	
 	model.compile(
 		loss='mse', 
-		metrics=['mse'],
+		metrics=['mse', max_abs_error],
 	optimizer=Adam(lr=1e-4))
 
 	model.summary()
@@ -55,6 +57,9 @@ def get_model_nvidia(sizex, sizey):
 	model.add(Activation(activation))
 
 	model.add(Convolution2D(48, 5, 5, subsample = (2,2), border_mode='valid', init = init))
+	model.add(Activation(activation))
+
+	model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
 	model.add(Activation(activation))
 
 	model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
@@ -102,7 +107,6 @@ def get_model_comma(sizex, sizey):
 	model.add(Lambda(minmax_norm))
 	#model.add(GaussianNoise(0.01))
 	model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same", init = init))
-#	model.add(BatchNormalization())
 	model.add(Activation(activation))
 	model.add(Convolution2D(32, 5, 5, subsample=(2, 2), border_mode="same", init = init))
 	model.add(Activation(activation))
