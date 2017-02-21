@@ -51,16 +51,13 @@ def telemetry(sid, data):
 	transformed_image_array = image_array[None, :, :, :]
 	# This model currently assumes that the features of the model are just the images. Feel free to change this.
 
+	# measure times
 	n1=dt.datetime.now()
-
 	telemetry_time = (n1 - n2).microseconds / 1000
-
 	steering_angle = float(model.predict(transformed_image_array, batch_size=1))
+
 	n2=dt.datetime.now()
 	prediction_time = (n2 - n1).microseconds / 1000
-
-	#time.sleep(1)
-	# The driving model currently just outputs a constant throttle. Feel free to edit this.
 
 	# speed_up_angle is 0 when angle is too abrupt to speed up and 1 when it's ok (heading straight)
 	speed_up_angle = np.max([0.15 - np.abs(steering_angle), 0.]) / 0.15
@@ -81,6 +78,9 @@ def telemetry(sid, data):
 
 	print("Angle: {: 4.3f} Throttle: {:3.1f} Speed: {:4.1f} Pred: {:5.1f} ms Tele: {:5.1f} ms @ {:4.1f} fps".format(
 		steering_angle, throttle, speed, prediction_time, telemetry_time, prediction_fps))
+
+	import IPython
+	#IPython.embed()
 
 	send_control(steering_angle, throttle)
 

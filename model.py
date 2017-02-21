@@ -43,17 +43,15 @@ def get_model_nvidia(sizex, sizey):
 	model.add(Cropping2D(cropping=((56, 24), (0, 0)),input_shape=(sizey, sizex, 3)))
 	model.add(AveragePooling2D(pool_size=(1, 2)))
 	model.add(Lambda(minmax_norm))
-	model.add(GaussianNoise(0.2))
-
-#	model.add(Lambda(lambda x: x / 255 - 0.5, input_shape=(sizey, sizex, 3)))
+#	model.add(GaussianNoise(0.2))
 
 	init = 'glorot_normal'
 	activation = 'relu'
 
-	model.add(Convolution2D(24, 5, 5, subsample = (2,2), border_mode='valid', init = init))
+	model.add(Convolution2D(24, 10, 10, subsample = (2,2), border_mode='valid', init = init))
 	model.add(Activation(activation))
 
-	model.add(Convolution2D(36, 5, 5, subsample = (2,2), border_mode='valid', init = init))
+	model.add(Convolution2D(36, 10, 10, subsample = (2,2), border_mode='valid', init = init))
 	model.add(Activation(activation))
 
 	model.add(Convolution2D(48, 5, 5, subsample = (2,2), border_mode='valid', init = init))
@@ -65,14 +63,13 @@ def get_model_nvidia(sizex, sizey):
 	model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
 	model.add(Activation(activation))
 
-	model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
-	model.add(Activation(activation))
+	#model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
+	#model.add(Activation(activation))
 
 	model.add(Flatten())
 
 	model.add(Dropout(.2))
 	model.add(Dense(128, init = init))
-#	model.add(Dense(1164, init = init))
 	model.add(Activation(activation))
 
 	model.add(Dropout(.3))
@@ -102,10 +99,8 @@ def get_model_comma(sizex, sizey):
 	init = 'glorot_uniform'
 
 	model = Sequential()
-#	model.add(Lambda(lambda x: x/127.5 - 1., input_shape=(sizey, sizex, 3)))
 	model.add(Cropping2D(cropping=((56, 24), (0, 0)),input_shape=(sizey, sizex, 3)))
 	model.add(Lambda(minmax_norm))
-	#model.add(GaussianNoise(0.01))
 	model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same", init = init))
 	model.add(Activation(activation))
 	model.add(Convolution2D(32, 5, 5, subsample=(2, 2), border_mode="same", init = init))
