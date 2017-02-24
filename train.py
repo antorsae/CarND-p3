@@ -22,22 +22,54 @@ import random
 
 BINS = 	100
 MAX_PER_BIN = 300
-SMOOTHING = True
+SMOOTHING = False
+TRANSFORMS = 3*2*4
 
-# given a log entry generates 12 different transformations:
+# given a log entry generates 24 different transformations:
 # - image, blurred image (x3), blurred image (x5)
 # - shadowed and flipped for all of the 3 above
+# - color jittered
 def gen_transforms(l):
 	st        = l.steering
 	image     = imread(l.image)
 	image_f   = cv2.flip(image, flipCode = 1) 
-	image_b3  = cv2.GaussianBlur(image,   (3,3),0 ) 
-	image_b3f = cv2.GaussianBlur(image_f, (3,3),0 )
-	image_b5  = cv2.GaussianBlur(image,   (5,5),0 ) 
-	image_b5f = cv2.GaussianBlur(image_f, (5,5),0 ) 
+	image_b3  = cv2.medianBlur(image,   3,0 ) 
+	image_b3f = cv2.medianBlur(image_f, 3,0 )
+	image_zy  = cv2.warpAffine(image,   np.float32([[1,0,0],[0,1.15 + np.random.random_sample() * 0.10,0]]), image.shape[:2][::-1])
+	image_zyf = cv2.warpAffine(image_f, np.float32([[1,0,0],[0,1.15 + np.random.random_sample() * 0.10,0]]), image.shape[:2][::-1])
 
-	return (image, shadow(image), image_f, shadow(image_f), image_b3, shadow(image_b3), image_b3f, shadow(image_b3f), image_b5, shadow(image_b5), image_b5f, shadow(image_b5f),
-			   st,  		  st,     -st,			   -st,   	  st, 	            st,	      -st,	             -st,       st,			      st,       -st,              -st)
+	#image_zy  = cv2.resize(image,   image.shape[:2][::-1], fx=1, fy = 1.23 + np.random.random_sample() * 0.25)
+	#image_zyf = cv2.resize(image_f, image.shape[:2][::-1], fx=1, fy = 1.23 + np.random.random_sample() * 0.25)
+
+#	image_b5  = cv2.medianBlur(image,   5,0 ) 
+#	image_b5f = cv2.medianBlur(image_f, 5,0 ) 
+
+	images    = [image,	image_f, image_b3, image_b3f, image_zy, image_zyf ]
+	steerings = [   st, 	-st,	   st, 	     -st, 	    st,       -st ]
+	#images    = [image,	image_f]
+	#steerings = [   st, 	-st]
+
+	lis = len(images)
+	for i in range(lis):
+		images.append(jitter_color(images[i]))
+		steerings.append(steerings[i])
+
+	lis = len(images)
+	for i in range(lis):
+		images.append(shadow(images[i]))
+		steerings.append(steerings[i])
+
+	assert(len(images) == TRANSFORMS)
+
+	return tuple(images + steerings)		  
+
+def jitter_color(i):
+	it = cv2.cvtColor(i, cv2.COLOR_RGB2HSV)
+	h_jitter = np.random.randint(5,15) * random.choice([-1, 1])
+	s_jitter = np.random.randint(5,100) * random.choice([-1, 1])
+	it = np.int64(np.int64(it) + np.array([h_jitter, s_jitter, 0]))
+	it  = np.uint8(np.clip(it, np.array([0,0,0]),  np.array([179,255,255])))
+	return cv2.cvtColor(it, cv2.COLOR_HSV2RGB)
 
 # GENERATOR
 # 
@@ -94,9 +126,10 @@ def generator(log, log_left=None, validation = False):
 					for w_l in work_l:
 						results.append(gen_transforms(w_l))
 				for r in results:
-					# todo: infer augment factor autmatically
-					images 				= np.vstack((images, 			  [r[ 0]], [r[ 1]], [r[ 2]], [r[ 3]], [r[ 4]], [r[ 5]], [r[ 6]], [r[ 7]], [r[ 8]], [r[ 9]], [r[10]], [r[11]]))
-					augmented_steerings = np.vstack((augmented_steerings, [r[12]], [r[13]], [r[14]], [r[15]], [r[16]], [r[17]], [r[18]], [r[19]], [r[20]], [r[21]], [r[22]], [r[23]]))
+					rt = len(r)//2
+					for ri in range(rt):
+						images 				= np.vstack((images, 			  [r[ri]]))
+						augmented_steerings = np.vstack((augmented_steerings, [r[ri+rt]]))
 
 			images_processed = np.empty([0, Preprocess.sizey, Preprocess.sizex, 3], dtype=np.uint8)
 
@@ -114,7 +147,7 @@ def generator(log, log_left=None, validation = False):
 			yield (images_processed, np.clip(augmented_steerings, -1., 1.))
 
 		if validation == False:
-			log, log_left = balance(log, log_left)
+			log, log_left = balance(log, log_left, consume=False)
 			print() 
 			print("Balanced items:", len(log), "Unbalanced items left for next epochs:", len(log_left), "(for sequential rebalancing)")
 
@@ -126,9 +159,7 @@ def generator(log, log_left=None, validation = False):
 # http://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/tsmcb09.pdf
 #
 # pros: all items are used after N re-balances
-# todo: all items are just seen once, it would be better to make sure
-#       items are sequentially seen later as often as possible. 
-def balance(b, ul = None):
+def balance(b, ul = None, consume=True):
 	balanced = pd.DataFrame()   # Balanced dataset
 	bins =  BINS                # N of bins
 	bin_n = MAX_PER_BIN         # N of examples to include in each bin (at most)
@@ -146,7 +177,8 @@ def balance(b, ul = None):
 		if ul_n > 0:
 			ul_  = ul_.sample(ul_n)
 			balanced = pd.concat([balanced, ul_, b_[:(bin_n-ul_n)]])
-			ul = ul[~ul['image'].isin(ul_['image'])]
+			if consume:
+				ul = ul[~ul['image'].isin(ul_['image'])]
 		else:
 			balanced = pd.concat([balanced, b_])
 		start = end
@@ -180,9 +212,14 @@ def shadow(image):
 # takes CSV and outouts DF with 'image' and 'steering'
 # adjust steering based on 'cb' (center bias) and lrb (left/right bias) 
 # if applicable
-def read_log(dir, t="c", cb=0., lrb=0.1):
-	log = pd.read_csv(dir+'/driving_log.csv')
+def read_log(dir, t="c", cb=0., lrb=0.18):
 	new = pd.DataFrame()
+	path = dir+'/driving_log.csv'
+	try:
+		log = pd.read_csv(path)
+	except:
+		print ("WARNING!", path, "not found!")
+		return new
 	m = { "c" : "center", "l" : "left", "r" : "right"}
 	for i in t.split():
 		camera = log[[m[i], 'steering']].copy().rename(columns={m[i]: 'image'})
@@ -223,8 +260,8 @@ if __name__ == "__main__":
 	left_log     = read_log(args.leftdir,   t = "c r"  , cb =  0.5)
 	right_log    = read_log(args.rightdir,  t = "c l",   cb = -0.5)
 
-	sk_left_log  = read_log(sk_left_dir,    t = "c l r", cb =  0.6)
-	sk_right_log = read_log(sk_right_dir,   t = "c l r", cb = -0.6)
+	sk_left_log  = read_log(sk_left_dir,    t = "c l r", cb =  0.7)
+	sk_right_log = read_log(sk_right_dir,   t = "c l r", cb = -0.7)
 
 	track2_log   = read_log(track2_dir,     t = "c l r")
 
@@ -259,7 +296,7 @@ if __name__ == "__main__":
 	print("Samples in balanced validation set:", b_validate_log.shape[0])
 	history = model.fit_generator(generator(b_train_log, b_train_log_left), 
 				nb_epoch=200, 
-				samples_per_epoch = 12*b_train_log.shape[0],
+				samples_per_epoch = TRANSFORMS*b_train_log.shape[0],
 				validation_data = generator(b_validate_log, validation=True),
 				nb_val_samples = b_validate_log.shape[0],
 				callbacks = [cb, cbtb])
