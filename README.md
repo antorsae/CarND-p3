@@ -37,7 +37,7 @@ Click to see the video showing both track #1 and track #2 running in autonomous 
 #### 1. Training data
 This project involved collecting good driving behavior from the Udacity simulator to train a neural network to learn to predict the steering angle. The simulator collects both the center image as seen inside car as well as left and right images.
 
-#### Good driving behavior
+#### Learning from good driving behavior
 I collected "good" driving behavior driving in the center of the track. I collected a total of ~27k datapoints driving as best as I could.
 
 Here's how the centered driving looks like (left, center and right cameras):
@@ -67,9 +67,15 @@ The performance of the system where you run the simulator and the drive.py scrip
 
 Moreover, the steering angles output to the simulator are repeated either 2x or 3x. I believe there this is a bug in the simulator or drive.py supplied code and the frame gathered by the telemetry function is not updated on every call, so the net predictions per seconds are half or a third of those returned . In the output above, the reported 12 fps should be divided by 3: the steering prediction is repeated each time so the net speed at which the steering angle is adjusted is just 4 times per second! 
 
-####Augmented behavior
+#### Augmented behavior: Learning from bad behavior
 
-Training the network with just good driving is not enough. Should a small error occur, the network will not know how to steer back to the center of the road. Udacity suggested to record driving behavior showing how to steer back to the center from a bad position.
+Although there's already implicit corrections made by using the left and right cameras, good driving is not enough: should a small error occur, the network will not know how to steer back to the center of the road:
+
+![centered only training](./assets/track1-centered.gif)
+
+The video above shows the car drives almost perfectly, however at a steep curve almost at the end it is unable to steer itself back to the center of the road.
+
+Udacity suggested to record driving behavior showing how to steer back to the center from a bad position.
 
 Unfortunately the driving simulator 
 
