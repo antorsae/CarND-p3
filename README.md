@@ -31,11 +31,11 @@ Once it connects to the simulator in autonomous mode, it outputs the predicted s
 
 ### Results
 
-Click on the GIFs to see full-version on youtube.
+I managed to get track #1 and track #2 working at 30 mph. Click on the GIFs to see full-version on youtube.
 
-[![Track #1](./assets/track1-30mph-fantastic.gif "Track #1")](https://www.youtube.com/watch?v=vDBoPAgClQo) [![Track #2](./assets/track2-30mph-fast.gif "Track #1")](https://www.youtube.com/watch?v=)
+[![Track #1](./assets/track1-30mph-fantastic.gif "Track #1")](https://www.youtube.com/watch?v=vDBoPAgClQo) [![Track #2](./assets/track2-30mph-fast.gif "Track #1")](https://www.youtube.com/watch?v=OOEopwAbZmw)
 
-#### 1. Training data
+### 1. Training data
 This project involved collecting good driving behavior from the Udacity simulator to train a neural network to learn to predict the steering angle. The simulator collects both the center image as seen inside car as well as left and right images.
 
 #### Learning from good driving behavior
@@ -120,29 +120,58 @@ The model.py file contains the code for training and saving the convolution neur
 
 ###Model Architecture and Training Strategy
 
-####1. An appropriate model architecture has been employed
+My model consists of an Nvidia-inspired convolution neural network with two 10x10 filters, followed by a 5x5 filter and two 3x3 filters and depths between 16 and 24; after flattening followed by 4 fully-connected layers with sizes between 64 and 8 (model.py lines 40-85). The network has ~70k trainable parameters.
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
+The model includes RELU layers to introduce nonlinearity (code line 48), and the data is normalized in the model using a Keras lambda layer to perform minmax for each image:
 
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
+```
+def minmax_norm(x):
+    xmin = K.min(x, axis=[1,2,3], keepdims=True)
+    xmax = K.max(x, axis=[1,2,3], keepdims=True)
+    
+    return (x - xmin ) / (xmax-xmin) - 0.5
+```
 
-####2. Attempts to reduce overfitting in the model
+Using minmax should help generalizing when overall brightness changes as it normalizes the input to the network to be between -0.5 and +0.5 even for very dark images.
 
-The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
+Instead of preprocessing images in Python, I opted to do cropping and downsampling in the model (lines 43-44).
 
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+I chose the Nvidia-inspired model since it was used for an almost identical problem and I tweaked it down to ~70k parameters. I believe the network could be further tuned down but this remains empirical.
 
-####3. Model parameter tuning
+#### Dropout
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
+The model contains dropout layers in the fully connected layers in order to reduce overfitting (model.py lines 21). 
 
-####4. Appropriate training data
+#### Model parameter tuning
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
+The model used an Adam optimizer with a very low learning rate (1e-4), using the default Keras learning rate made the network diverge.
 
-For details about how I created the training data, see the next section. 
+#### Training vs. Validation data
 
-###Model Architecture and Training Strategy
+Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving and corrected left-sided, right-sided and skewed lane driving for track #1, which was split in 80% training and 20% validation. Since I wanted to see how the network generalized to track #2 I added centered-driving track #2 to the validation set.
+
+#### Balancing the training set
+
+After the training set has been loaded, the histogram of the absolute value of steering angles looks like this:
+
+![Unbalanced training set](./train-unbalanced.png "Unbalanced training set")
+
+The peaks require some explanation:
+
+* 0: Most of the time the steering angle is very small.
+* 0.18: Left and right cameras (corrected).
+* 0.5: Left-sided and right-sided driving (corrected).
+* 0.7: Skewed driving (corrected)
+
+We need to balance the data (since we are using the MSE as the loss function), and I opted to limit to a maximum of 300 samples for each histogram bucket:
+
+![Balanced training set](./train-balanced.png "Balanced training set")
+
+#### Keras generator
+
+Since we cannot load all images in memory and we want to augment images, I used a Keras generator. For each training item, a total of 24 items are generated, using a combination of flipping, image scaling, blurring, color jittering and shadows:
+
+![Augmentations](./assets/augmentations.png "Augmentations")
 
 ####1. Solution Design Approach
 
