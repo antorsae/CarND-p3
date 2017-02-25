@@ -31,13 +31,9 @@ Once it connects to the simulator in autonomous mode, it outputs the predicted s
 
 ### Results
 
-Click on the GIFs to see full-version on youtube:
+Click on the GIFs to see full-version on youtube.
 
-Track #1:
-[![Track #1](./assets/track1-30mph-fantastic.gif "Track #1")](https://www.youtube.com/watch?v=vDBoPAgClQo)
-
-Track #2 (not used in training):
-[![Track #2](./assets/track2-30mph-fast.gif "Track #1")](https://www.youtube.com/watch?v=)
+[![Track #1](./assets/track1-30mph-fantastic.gif "Track #1")](https://www.youtube.com/watch?v=vDBoPAgClQo) [![Track #2](./assets/track2-30mph-fast.gif "Track #1")](https://www.youtube.com/watch?v=)
 
 #### 1. Training data
 This project involved collecting good driving behavior from the Udacity simulator to train a neural network to learn to predict the steering angle. The simulator collects both the center image as seen inside car as well as left and right images.
