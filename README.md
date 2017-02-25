@@ -171,7 +171,7 @@ We need to balance the data (since we are using the MSE as the loss function), a
 
 Since we cannot load all images in memory and we want to augment images, I used a Keras generator. For each training item, a total of 24 items are generated, using a combination of flipping, image scaling, blurring, color jittering and shadows:
 
-![Augmentations](./assets/augmentations.png "Augmentations")
+![Augmentations](./assets/augmentations.jpg "Augmentations")
 
 ####1. Solution Design Approach
 
