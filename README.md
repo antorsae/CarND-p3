@@ -31,8 +31,13 @@ Once it connects to the simulator in autonomous mode, it outputs the predicted s
 
 ### Results
 
-Click to see the video showing both track #1 and track #2 running in autonomous mode at full speed:
-[![Track 1 and track 2 - full speed](http://img.youtube.com/vi/RsCTkeEXxNU/0.jpg)](http://www.youtube.com/watch?v=RsCTkeEXxNU)
+Click on the GIFs to see full-version on youtube:
+
+Track #1:
+[![Track #1](./assets/track1-30mph-fantastic.gif "Track #1")](https://www.youtube.com/watch?v=vDBoPAgClQo)
+
+Track #2 (not used in training):
+[![Track #2](./assets/track2-30mph-fast.gif "Track #1")](https://www.youtube.com/watch?v=)
 
 #### 1. Training data
 This project involved collecting good driving behavior from the Udacity simulator to train a neural network to learn to predict the steering angle. The simulator collects both the center image as seen inside car as well as left and right images.
@@ -61,11 +66,11 @@ def read_log(dir, t="c", cb=0., lrb=0.18):
 
 In the code above the left / right bias defaults to 0.18. This bias controls how fast we want the car to get to a point ahead of the center camera. If the number is too low, the car will steer back to the center slowly; and if it's too high it will go back more quickly. 
 
-The performance of the system where you run the simulator and the drive.py script severely impacts actual driving. If the computer is slow, the correction bias is high (eg 0.15 or more), and the speed is hight (eg 20 mph) the car will end up driving in curves. This is because the steering angle will only be predicted and adjusted a few times per second so a really long straight line will be needed to stabilize the car. The drive.py outputs effective prediction fps to help diagnose performance issues:
+The performance of the system where you run the simulator and the drive.py script severely impacts actual driving. If the computer is slow, the correction bias is high (e.g. 0.15 or more), and the speed is high (e.g. 20 mph) the car will end up driving in curves. This is because the steering angle will only be predicted and adjusted a few times per second so a really long straight line will be needed to stabilize the car. The drive.py outputs effective prediction fps to help diagnose performance issues:
 
 ![drive.py output fps](./assets/driving-fps-detail.png)
 
-Moreover, the steering angles output to the simulator are repeated either 2x or 3x. I believe there this is a bug in the simulator or drive.py supplied code and the frame gathered by the telemetry function is not updated on every call, so the net predictions per seconds are half or a third of those returned . In the output above, the reported 12 fps should be divided by 3: the steering prediction is repeated each time so the net speed at which the steering angle is adjusted is just 4 times per second! 
+Moreover, the steering angles output to the simulator are repeated either 2x or 3x. I believe there this is a bug in the simulator or drive.py supplied code and the frame gathered by the telemetry function is not updated on every call, so the net predictions per seconds are half or a third of those returned. In the output above, the reported 12 fps should be divided by 3: the steering prediction is repeated each time so the net speed at which the steering angle is adjusted is just 4 times per second! 
 
 #### Augmented behavior: Learning from bad behavior
 
@@ -79,7 +84,7 @@ Udacity suggested to record *recovering* driving behavior showing how to steer b
 
 Unfortunately the simulator makes it a bit difficult for one person alone to selectively record fragments of driving behavior, especially if using a gamepad: the simulator requires you to start/stop recording with the mouse while you control the car with a gamepad. I decided to use a different approach: record *bad behavior* and modify it in the same way the left/right cameras are adjusted to be useful as training material.
 
-##### Bad behavior: Sidewalk driving
+##### Learning from bad behavior: Sidewalk driving
 
 I recorded left-sided driving: driving as best as possible with the car positioned as close as possible to the left line:
 
@@ -96,7 +101,7 @@ left_log     = read_log(args.leftdir,   t = "c r"  , cb =  0.5)
 right_log    = read_log(args.rightdir,  t = "c l",   cb = -0.5)
 ```
 
-##### More bad behavior: Skewed driving
+##### Learning from more bad behavior: Skewed driving
 
 Training the network with centered and sidewalk driving may be sufficient to get out from any position in which the car faces ahead; the training data  contains images where the car facing is parallel to the road. However should the car face the edge of the road in an oblique angle, correction may prove more difficult.
 
@@ -108,13 +113,12 @@ and from center to the right:
 
 ![Skewed-right driving](./assets/skewed-right-LCR.gif "Skewed-right driving")
 
-In the same vein as as above, the skewed driving must be loaded with a steering correction bias, in this case I went with 0.7. Again, the bigger the value the quicker the car will steer back to the center as long as the overall end-to-end performance of the simulator and prediction is good.
+In the same vein as as above, the skewed driving must be loaded with a steering correction bias, in this case I went with 0.7. Again, the bigger the value the quicker the car will steer back to the center as long as the overall end-to-end performance of the simulator and prediction pipeline is decent.
 
 ```
 sk_left_log  = read_log(sk_left_dir,    t = "c l r", cb =  0.7)
 sk_right_log = read_log(sk_right_dir,   t = "c l r", cb = -0.7)
 ```
-
 
 The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
 
