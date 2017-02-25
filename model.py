@@ -43,7 +43,6 @@ def get_model_nvidia(sizex, sizey):
 	model.add(Cropping2D(cropping=((56, 24), (0, 0)),input_shape=(sizey, sizex, 3)))
 	model.add(AveragePooling2D(pool_size=(1, 2)))
 	model.add(Lambda(minmax_norm))
-#	model.add(GaussianNoise(0.2))
 
 	init = 'glorot_normal'
 	activation = 'relu'
@@ -62,9 +61,6 @@ def get_model_nvidia(sizex, sizey):
 
 	model.add(Convolution2D(16, 3, 3, border_mode='valid', init = init))
 	model.add(Activation(activation))
-
-	#model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
-	#model.add(Activation(activation))
 
 	model.add(Flatten())
 

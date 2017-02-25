@@ -35,8 +35,12 @@ def gen_transforms(l):
 	image_f   = cv2.flip(image, flipCode = 1) 
 	image_b3  = cv2.medianBlur(image,   3,0 ) 
 	image_b3f = cv2.medianBlur(image_f, 3,0 )
-	image_zy  = cv2.warpAffine(image,   np.float32([[1,0,0],[0,1.15 + np.random.random_sample() * 0.10,0]]), image.shape[:2][::-1])
-	image_zyf = cv2.warpAffine(image_f, np.float32([[1,0,0],[0,1.15 + np.random.random_sample() * 0.10,0]]), image.shape[:2][::-1])
+	zy        = 1.25 + np.random.random_sample() * 0.20
+	oy        = image.shape[0] * (zy - 1) / 2
+	image_zy  = cv2.warpAffine(image,   np.float32([[1,0,0],[0,zy,-oy]]), image.shape[:2][::-1])
+	zy        = 1.25 + np.random.random_sample() * 0.20
+	oy        = image.shape[0] * (zy - 1) / 2
+	image_zyf = cv2.warpAffine(image_f, np.float32([[1,0,0],[0,zy,-oy]]), image.shape[:2][::-1])
 
 	#image_zy  = cv2.resize(image,   image.shape[:2][::-1], fx=1, fy = 1.23 + np.random.random_sample() * 0.25)
 	#image_zyf = cv2.resize(image_f, image.shape[:2][::-1], fx=1, fy = 1.23 + np.random.random_sample() * 0.25)
@@ -65,7 +69,7 @@ def gen_transforms(l):
 
 def jitter_color(i):
 	it = cv2.cvtColor(i, cv2.COLOR_RGB2HSV)
-	h_jitter = np.random.randint(5,15) * random.choice([-1, 1])
+	h_jitter = np.random.randint(5,10) * random.choice([-1, 1])
 	s_jitter = np.random.randint(5,100) * random.choice([-1, 1])
 	it = np.int64(np.int64(it) + np.array([h_jitter, s_jitter, 0]))
 	it  = np.uint8(np.clip(it, np.array([0,0,0]),  np.array([179,255,255])))

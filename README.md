@@ -173,54 +173,21 @@ Since we cannot load all images in memory and we want to augment images, I used 
 
 ![Augmentations](./assets/augmentations.jpg "Augmentations")
 
-####1. Solution Design Approach
+The reason I used so many variations was to try to pass track #2 in fantastic mode, which contains shadows, slopes and the colors are not exactly as in track #1.
 
-The overall strategy for deriving a model architecture was to ...
+#### Training strategy
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+I trained my model for about ~120 epochs saving only the best performing model. Since the training set was balanced via undersampling, I decided to implement sequential rebalancing inspired by [this paper](http://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/tsmcb09.pdf) to make sure as many training samples as possible are used while the labels are balanced. 
 
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
+#### Misc
 
-To combat the overfitting, I modified the model so that ...
+Training took ~20 hours on my GTX 1080 card but despite all augmentations it still cannot pass track #2 on fantastic mode:
+![Track 2 fantastic](./assets/track2-30mph-fantastic-failed.gif "Track 2 fantastic")
 
-Then I ... 
+Training without centered driving manages to get track #1 done:
+![Track 1 left right only](./assets/track1-left-right.gif "Track 1 left right only")
 
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
-
-At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
-
-####2. Final Model Architecture
-
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
-
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
-
-![alt text][image1]
-
-####3. Creation of the Training Set & Training Process
-
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
-
-![alt text][image2]
-
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
-
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
-
-Then I repeated this process on track two in order to get more data points.
-
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
-
-![alt text][image6]
-![alt text][image7]
-
-Etc ....
-
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+GPU is only ~20% busy during training. It looks CPU is the bottleneck b/c of augmentations and possibly JPEG decompression.
 
 
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
 
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
