@@ -1,4 +1,4 @@
-*Behavioral Cloning Project*
+##Behavioral Cloning Project##
 
 The goals / steps of this project are the following:
 * Use the simulator to collect data of good driving behavior
@@ -12,9 +12,11 @@ The goals / steps of this project are the following:
 My project includes the following files:
 * model.py contains two models: one based on NVIDIA and another model based on COMMA.AI. I wanted to test how different models behave using the same training data.
 * drive.py for driving the car in autonomous mode. It accepts a command line parameter for which model to load as well as an optional parameter to set the target speed (otherwise it detaults to 20 mph), e.g.
+
 ```sh
 python drive.py nvidia.json 25
 ```
+
 Once it connects to the simulator in autonomous mode, it outputs the predicted steering angle, speed, as well as prediction time (in milliseconds),  the time since the last frame -tele time-, as well as the net prediction fps:
 ![drive.py output](./assets/driving.png)
 * preprocess.py just includes common preprocessing code in Python but at the end I did included all preprocessing in the model itself. I left it in for future use.
@@ -27,13 +29,10 @@ Once it connects to the simulator in autonomous mode, it outputs the predicted s
 - nvidia-left-right-skleft-skright.json.json/h5 same model trained with left-sided, right-sided and skewed driving
 - readme.md (this file)
 
-
 ### Results
-
 
 Click to see the video showing both track #1 and track #2 running in autonomous mode at full speed:
 [![Track 1 and track 2 - full speed](http://img.youtube.com/vi/RsCTkeEXxNU/0.jpg)](http://www.youtube.com/watch?v=RsCTkeEXxNU)
-
 
 #### 1. Training data
 This project involved collecting good driving behavior from the Udacity simulator to train a neural network to learn to predict the steering angle. The simulator collects both the center image as seen inside car as well as left and right images.
@@ -60,16 +59,19 @@ The read_log function will load the data and use all three cameras as indicated 
 def read_log(dir, t="c", cb=0., lrb=0.18):
 ```
 
-In the code above the left / right bias defaults to 0.18. This bias controls how fast we want the car to get to a point ahead the center camera. If the number is too low, the car will steer back to the center slowly; and if it's too high it will go back more quickly. 
+In the code above the left / right bias defaults to 0.18. This bias controls how fast we want the car to get to a point ahead of the center camera. If the number is too low, the car will steer back to the center slowly; and if it's too high it will go back more quickly. 
 
-I found that the performance of the system where you run the simulator and the drive.py script severely impacts actual driving. If the computer is slow, the correction bias is high (say 0.15 or more), and the speed is hight (say 20 mph) the car will end up driving in curves. This is because the steering angle will only be predicted and adjusted a few times per second so a really long straight line will be needed to stabilize the car. The drive.py outputs effective prediction fps to help diagnose performance issues. Moreover, even if reported prediction fps seem high (more than 30 fps) the steering angles output to the simulator are repeated either 2x or 3x, so the net predictions per seconds are half or a third of those returned (I think this is a bug in the simulator or drive.py supplied code).
+The performance of the system where you run the simulator and the drive.py script severely impacts actual driving. If the computer is slow, the correction bias is high (eg 0.15 or more), and the speed is hight (eg 20 mph) the car will end up driving in curves. This is because the steering angle will only be predicted and adjusted a few times per second so a really long straight line will be needed to stabilize the car. The drive.py outputs effective prediction fps to help diagnose performance issues:
 
-Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
-```sh
-python drive.py model.h5
-```
+![drive.py output fps](./assets/driving-fps-detail.png)
 
-####3. Submission code is usable and readable
+Moreover, the steering angles output to the simulator are repeated either 2x or 3x. I believe there this is a bug in the simulator or drive.py supplied code and the frame gathered by the telemetry function is not updated on every call, so the net predictions per seconds are half or a third of those returned . In the output above, the reported 12 fps should be divided by 3: the steering prediction is repeated each time so the net speed at which the steering angle is adjusted is just 4 times per second! 
+
+####Augmented behavior
+
+Training the network with just good driving is not enough. Should a small error occur, the network will not know how to steer back to the center of the road. Udacity suggested to record driving behavior showing how to steer back to the center from a bad position.
+
+Unfortunately the driving simulator 
 
 The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
 
