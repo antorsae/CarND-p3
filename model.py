@@ -51,16 +51,16 @@ def get_model_nvidia(sizex, sizey):
 	model.add(Convolution2D(24, 10, 10, subsample = (2,2), border_mode='valid', init = init))
 	model.add(Activation(activation))
 
-	model.add(Convolution2D(36, 10, 10, subsample = (2,2), border_mode='valid', init = init))
+	model.add(Convolution2D(16, 10, 10, subsample = (2,2), border_mode='valid', init = init))
 	model.add(Activation(activation))
 
-	model.add(Convolution2D(48, 5, 5, subsample = (2,2), border_mode='valid', init = init))
+	model.add(Convolution2D(16, 5, 5, subsample = (2,2), border_mode='valid', init = init))
 	model.add(Activation(activation))
 
-	model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
+	model.add(Convolution2D(16, 3, 3, border_mode='valid', init = init))
 	model.add(Activation(activation))
 
-	model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
+	model.add(Convolution2D(16, 3, 3, border_mode='valid', init = init))
 	model.add(Activation(activation))
 
 	#model.add(Convolution2D(64, 3, 3, border_mode='valid', init = init))
@@ -69,19 +69,19 @@ def get_model_nvidia(sizex, sizey):
 	model.add(Flatten())
 
 	model.add(Dropout(.2))
-	model.add(Dense(128, init = init))
-	model.add(Activation(activation))
-
-	model.add(Dropout(.3))
 	model.add(Dense(64, init = init))
 	model.add(Activation(activation))
 
-	model.add(Dropout(.4))
+	model.add(Dropout(.3))
 	model.add(Dense(32, init = init))
 	model.add(Activation(activation))
 
-	model.add(Dropout(.5))
+	model.add(Dropout(.4))
 	model.add(Dense(16, init = init))
+	model.add(Activation(activation))
+
+	model.add(Dropout(.5))
+	model.add(Dense(8, init = init))
 	model.add(Activation(activation))
 
 	model.add(Dense(1))

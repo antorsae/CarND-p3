@@ -7,21 +7,7 @@ The goals / steps of this project are the following:
 * Test that the model successfully drives around track one without leaving the road
 * Summarize the results with a written report
 
-[//]: # (Image References)
-
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
-
-## Rubric Points
-###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
-
----
-### Overview
+### Overview and project deliverables
 
 My project includes the following files:
 * model.py contains two models: one based on NVIDIA and another model based on COMMA.AI. I wanted to test how different models behave using the same training data.
@@ -29,22 +15,30 @@ My project includes the following files:
 ```sh
 python drive.py nvidia.json 25
 ```
+Once it connects to the simulator in autonomous mode, it outputs the predicted steering angle, speed, as well as prediction time (in milliseconds),  the time since the last frame -tele time-, as well as the net prediction fps:
+![drive.py output](./assets/driving.png)
 * preprocess.py just includes common preprocessing code in Python but at the end I did included all preprocessing in the model itself. I left it in for future use.
 * Trained models:
-** comma.json/h5 contains the comma.ai model trained using centered, left-sided, right-sided and skewed driving (more on this later).
-** nvidia.json/h5 contains the nvidia-inspired trained using centered, left-sided, right-sided and skewed driving.
-** nvidia-centered.json/h5 same model trained only with centered driving.
-** nvidia-centered-left-right.json/h5 same model trained with centered driving and left-sided and right-sided driving (but not skewed driving)
-** nvidia-left-right.json.json/h5 same model trained only with left-sided and right-sided driving
-** nvidia-left-right-skleft-skright.json.json/h5 same model trained with left-sided, right-sided and skewed driving
-** readme.md (this file)
+- comma.json/h5 contains the comma.ai model trained using centered, left-sided, right-sided and skewed driving (more on this later).
+- nvidia.json/h5 contains the nvidia-inspired trained using centered, left-sided, right-sided and skewed driving.
+- nvidia-centered.json/h5 same model trained only with centered driving.
+- nvidia-centered-left-right.json/h5 same model trained with centered driving and left-sided and right-sided driving (but not skewed driving)
+- nvidia-left-right.json.json/h5 same model trained only with left-sided and right-sided driving
+- nvidia-left-right-skleft-skright.json.json/h5 same model trained with left-sided, right-sided and skewed driving
+- readme.md (this file)
+
+### Results
+
+This video shows both track #1 and track #2 running in autonomous mode at full speed:
+[![Track 1 and track 2 - full speed](http://img.youtube.com/vi/RsCTkeEXxNU/0.jpg)](http://www.youtube.com/watch?v=RsCTkeEXxNU)
+
 
 ####1. Training data: behavioral cloning
 This project involved collecting good driving behavior from the Udacity simulator to train a neural network to learn to predict the steering angle. The simulator collects both the center image as seen inside car as well as left and right images.
 
 I collected "good" driving behavior driving in the center of the track. I collected a total of ~27k datapoints driving as best as I could.
 
-Here's how the centered driving looks like:
+Here's how the centered driving looks like (left, center and right cameras):
 
 ![Centered driving](./assets/centered-LCR.gif "Centered Driving")
 
