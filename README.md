@@ -182,10 +182,12 @@ I trained my model for about ~120 epochs saving only the best performing model. 
 #### Misc
 
 Training took ~20 hours on my GTX 1080 card but despite all augmentations it still cannot pass track #2 on fantastic mode:
-![Track 2 fantastic](./assets/track2-30mph-fantastic-failed.gif "Track 2 fantastic")
+
+[![Track 2 fantastic](./assets/track2-30mph-fantastic-failed.gif "Track 2 fantastic")](https://www.youtube.com/watch?vhytT9AJL8IY)
 
 Training without centered driving manages to get track #1 done:
-![Track 1 left right only](./assets/track1-left-right.gif "Track 1 left right only")
+
+[![Track 1 left right only](./assets/track1-left-right.gif "Track 1 left right only")](https://www.youtube.com/watch?v=uOCIqdVYwOk)
 
 GPU is only ~20% busy during training. It looks CPU is the bottleneck b/c of augmentations and possibly JPEG decompression.
 
