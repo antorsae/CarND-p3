@@ -183,7 +183,7 @@ I trained my model for about ~120 epochs saving only the best performing model. 
 
 Training took ~20 hours on my GTX 1080 card but despite all augmentations it still cannot pass track #2 on fantastic mode:
 
-[![Track 2 fantastic](./assets/track2-30mph-fantastic-failed.gif "Track 2 fantastic")](https://www.youtube.com/watch?v=vhytT9AJL8IY)
+[![Track 2 fantastic](./assets/track2-30mph-fantastic-failed.gif "Track 2 fantastic")](https://www.youtube.com/watch?v=hytT9AJL8IY)
 
 Training without centered driving manages to get track #1 done:
 
