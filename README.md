@@ -1,4 +1,4 @@
-**Behavioral Cloning Project**
+*Behavioral Cloning Project*
 
 The goals / steps of this project are the following:
 * Use the simulator to collect data of good driving behavior
@@ -27,20 +27,42 @@ Once it connects to the simulator in autonomous mode, it outputs the predicted s
 - nvidia-left-right-skleft-skright.json.json/h5 same model trained with left-sided, right-sided and skewed driving
 - readme.md (this file)
 
+
 ### Results
 
-This video shows both track #1 and track #2 running in autonomous mode at full speed:
+
+Click to see the video showing both track #1 and track #2 running in autonomous mode at full speed:
 [![Track 1 and track 2 - full speed](http://img.youtube.com/vi/RsCTkeEXxNU/0.jpg)](http://www.youtube.com/watch?v=RsCTkeEXxNU)
 
 
-####1. Training data: behavioral cloning
+#### 1. Training data
 This project involved collecting good driving behavior from the Udacity simulator to train a neural network to learn to predict the steering angle. The simulator collects both the center image as seen inside car as well as left and right images.
 
+#### Good driving behavior
 I collected "good" driving behavior driving in the center of the track. I collected a total of ~27k datapoints driving as best as I could.
 
 Here's how the centered driving looks like (left, center and right cameras):
 
 ![Centered driving](./assets/centered-LCR.gif "Centered Driving")
+
+The train.py contains code to load the above training data and use the center, left and right cameras:
+
+```
+center_log   = read_log(args.centerdir, t = "c l r")
+```
+
+The read_log function will load the data and use all three cameras as indicated by "c l r". The steering angle is left as-is for the center camera and is corrected by configurable bias:
+
+```
+# takes CSV and outouts DF with 'image' and 'steering'
+# adjust steering based on 'cb' (center bias) and lrb (left/right bias) 
+# if applicable
+def read_log(dir, t="c", cb=0., lrb=0.18):
+```
+
+In the code above the left / right bias defaults to 0.18. This bias controls how fast we want the car to get to a point ahead the center camera. If the number is too low, the car will steer back to the center slowly; and if it's too high it will go back more quickly. 
+
+I found that the performance of the system where you run the simulator and the drive.py script severely impacts actual driving. If the computer is slow, the correction bias is high (say 0.15 or more), and the speed is hight (say 20 mph) the car will end up driving in curves. This is because the steering angle will only be predicted and adjusted a few times per second so a really long straight line will be needed to stabilize the car. The drive.py outputs effective prediction fps to help diagnose performance issues. Moreover, even if reported prediction fps seem high (more than 30 fps) the steering angles output to the simulator are repeated either 2x or 3x, so the net predictions per seconds are half or a third of those returned (I think this is a bug in the simulator or drive.py supplied code).
 
 Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
 ```sh
