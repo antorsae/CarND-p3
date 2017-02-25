@@ -75,9 +75,46 @@ Although there's already implicit corrections made by using the left and right c
 
 The video above shows the car drives almost perfectly, however at a steep curve almost at the end it is unable to steer itself back to the center of the road.
 
-Udacity suggested to record driving behavior showing how to steer back to the center from a bad position.
+Udacity suggested to record *recovering* driving behavior showing how to steer back to the center from a bad position.
 
-Unfortunately the driving simulator 
+Unfortunately the simulator makes it a bit difficult for one person alone to selectively record fragments of driving behavior, especially if using a gamepad: the simulator requires you to start/stop recording with the mouse while you control the car with a gamepad. I decided to use a different approach: record *bad behavior* and modify it in the same way the left/right cameras are adjusted to be useful as training material.
+
+##### Bad behavior: Sidewalk driving
+
+I recorded left-sided driving: driving as best as possible with the car positioned as close as possible to the left line:
+
+![Left-sided driving](./assets/left-LCR.gif "Left-sided driving")
+
+Conversely for right-sided driving:
+
+![Right-sided driving](./assets/right-LCR.gif "Right-sided driving")
+
+For the left-sided driving I used the center and right cameras, both corrected to point to the center of the road with a steering bias of +0.5. The right-sided driving I used the center and left cameras with the equivalent correcting bias. As in the case of the left and right cameras, the correction bias indicates how quickly we want the car to steer itself back towards the center:
+
+```
+left_log     = read_log(args.leftdir,   t = "c r"  , cb =  0.5)
+right_log    = read_log(args.rightdir,  t = "c l",   cb = -0.5)
+```
+
+##### More bad behavior: Skewed driving
+
+Training the network with centered and sidewalk driving may be sufficient to get out from any position in which the car faces ahead; the training data  contains images where the car facing is parallel to the road. However should the car face the edge of the road in an oblique angle, correction may prove more difficult.
+
+I recorded skewed-driving: driving from the center of the road trying to get out of the road, from center to the left:
+
+![Skewed-left driving](./assets/skewed-left-LCR.gif "Skewed-left driving")
+
+and from center to the right:
+
+![Skewed-right driving](./assets/skewed-right-LCR.gif "Skewed-right driving")
+
+In the same vein as as above, the skewed driving must be loaded with a steering correction bias, in this case I went with 0.7. Again, the bigger the value the quicker the car will steer back to the center as long as the overall end-to-end performance of the simulator and prediction is good.
+
+```
+sk_left_log  = read_log(sk_left_dir,    t = "c l r", cb =  0.7)
+sk_right_log = read_log(sk_right_dir,   t = "c l r", cb = -0.7)
+```
+
 
 The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
 
